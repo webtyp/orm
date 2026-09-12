@@ -50,6 +50,13 @@ func (d *DB) Create(m model.Model) error {
 				continue
 			}
 		}
+		// A zero value on an OmitEmpty field is left out of the INSERT entirely, so the
+		// database applies its own default — NULL for a nullable column. That is the
+		// only way to store NULL in a UNIQUE column, where "" would collide and NULL is
+		// the value a unique index allows to repeat.
+		if f.OmitEmpty && !f.IsPK() && isZeroValue(allValues[i]) {
+			continue
+		}
 		columns = append(columns, f.Name)
 		values = append(values, allValues[i])
 	}
@@ -64,6 +71,26 @@ func (d *DB) Create(m model.Model) error {
 		return err
 	}
 	return d.conn.Exec(plan.Query, plan.Args...)
+}
+
+func isZeroValue(v any) bool {
+	switch x := v.(type) {
+	case string:
+		return x == ""
+	case int:
+		return x == 0
+	case int64:
+		return x == 0
+	case float64:
+		return x == 0
+	case bool:
+		return !x
+	case []byte:
+		return len(x) == 0
+	case nil:
+		return true
+	}
+	return false
 }
 
 // UpdateFields updates ONLY the named columns, leaving every other column of

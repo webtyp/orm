@@ -129,3 +129,12 @@ var ShortAutoIncModel = model.Definition{
 		{Name: "value", Type: model.Int()},
 	},
 }
+
+var OmitEmptyDemoModel = model.Definition{
+	Name: "omit_empty_demo",
+	Fields: model.Fields{
+		{Name: "id", Type: model.Text(), DB: &model.FieldDB{PK: true}},
+		{Name: "email", Type: model.Text(), OmitEmpty: true, DB: &model.FieldDB{Unique: true}},
+		{Name: "nickname", Type: model.Text()},
+	},
+}
