@@ -47,8 +47,6 @@ func (m *User) DecodeFields(r model.FieldReader) {
 
 type UserList []*User
 
-func (s *UserList) Schema() []model.Field { return nil }
-func (s *UserList) Pointers() []any     { return nil }
 func (s *UserList) Len() int             { return len(*s) }
 func (s *UserList) At(i int) model.Fielder { return (*s)[i] }
 func (s *UserList) Append() model.Fielder  { v := &User{}; *s = append(*s, v); return v }
@@ -123,8 +121,6 @@ func (m *Order) DecodeFields(r model.FieldReader) {
 
 type OrderList []*Order
 
-func (s *OrderList) Schema() []model.Field { return nil }
-func (s *OrderList) Pointers() []any     { return nil }
 func (s *OrderList) Len() int             { return len(*s) }
 func (s *OrderList) At(i int) model.Fielder { return (*s)[i] }
 func (s *OrderList) Append() model.Fielder  { v := &Order{}; *s = append(*s, v); return v }
@@ -204,8 +200,6 @@ func (m *ModelWithIgnored) DecodeFields(r model.FieldReader) {
 
 type ModelWithIgnoredList []*ModelWithIgnored
 
-func (s *ModelWithIgnoredList) Schema() []model.Field { return nil }
-func (s *ModelWithIgnoredList) Pointers() []any     { return nil }
 func (s *ModelWithIgnoredList) Len() int             { return len(*s) }
 func (s *ModelWithIgnoredList) At(i int) model.Fielder { return (*s)[i] }
 func (s *ModelWithIgnoredList) Append() model.Fielder  { v := &ModelWithIgnored{}; *s = append(*s, v); return v }
@@ -271,8 +265,6 @@ func (m *MultiA) DecodeFields(r model.FieldReader) {
 
 type MultiAList []*MultiA
 
-func (s *MultiAList) Schema() []model.Field { return nil }
-func (s *MultiAList) Pointers() []any     { return nil }
 func (s *MultiAList) Len() int             { return len(*s) }
 func (s *MultiAList) At(i int) model.Fielder { return (*s)[i] }
 func (s *MultiAList) Append() model.Fielder  { v := &MultiA{}; *s = append(*s, v); return v }
@@ -334,8 +326,6 @@ func (m *MultiB) DecodeFields(r model.FieldReader) {
 
 type MultiBList []*MultiB
 
-func (s *MultiBList) Schema() []model.Field { return nil }
-func (s *MultiBList) Pointers() []any     { return nil }
 func (s *MultiBList) Len() int             { return len(*s) }
 func (s *MultiBList) At(i int) model.Fielder { return (*s)[i] }
 func (s *MultiBList) Append() model.Fielder  { v := &MultiB{}; *s = append(*s, v); return v }
@@ -400,8 +390,6 @@ func (m *NumericTypes) DecodeFields(r model.FieldReader) {
 
 type NumericTypesList []*NumericTypes
 
-func (s *NumericTypesList) Schema() []model.Field { return nil }
-func (s *NumericTypesList) Pointers() []any     { return nil }
 func (s *NumericTypesList) Len() int             { return len(*s) }
 func (s *NumericTypesList) At(i int) model.Fielder { return (*s)[i] }
 func (s *NumericTypesList) Append() model.Fielder  { v := &NumericTypes{}; *s = append(*s, v); return v }
@@ -465,8 +453,6 @@ func (m *RefNoColumn) DecodeFields(r model.FieldReader) {
 
 type RefNoColumnList []*RefNoColumn
 
-func (s *RefNoColumnList) Schema() []model.Field { return nil }
-func (s *RefNoColumnList) Pointers() []any     { return nil }
 func (s *RefNoColumnList) Len() int             { return len(*s) }
 func (s *RefNoColumnList) At(i int) model.Fielder { return (*s)[i] }
 func (s *RefNoColumnList) Append() model.Fielder  { v := &RefNoColumn{}; *s = append(*s, v); return v }
@@ -534,8 +520,6 @@ func (m *PointerReceiver) DecodeFields(r model.FieldReader) {
 
 type PointerReceiverList []*PointerReceiver
 
-func (s *PointerReceiverList) Schema() []model.Field { return nil }
-func (s *PointerReceiverList) Pointers() []any     { return nil }
 func (s *PointerReceiverList) Len() int             { return len(*s) }
 func (s *PointerReceiverList) At(i int) model.Fielder { return (*s)[i] }
 func (s *PointerReceiverList) Append() model.Fielder  { v := &PointerReceiver{}; *s = append(*s, v); return v }
@@ -609,8 +593,6 @@ func (m *UserForm) DecodeFields(r model.FieldReader) {
 
 type UserFormList []*UserForm
 
-func (s *UserFormList) Schema() []model.Field { return nil }
-func (s *UserFormList) Pointers() []any     { return nil }
 func (s *UserFormList) Len() int             { return len(*s) }
 func (s *UserFormList) At(i int) model.Fielder { return (*s)[i] }
 func (s *UserFormList) Append() model.Fielder  { v := &UserForm{}; *s = append(*s, v); return v }
@@ -680,8 +662,6 @@ func (m *LoginForm) DecodeFields(r model.FieldReader) {
 
 type LoginFormList []*LoginForm
 
-func (s *LoginFormList) Schema() []model.Field { return nil }
-func (s *LoginFormList) Pointers() []any     { return nil }
 func (s *LoginFormList) Len() int             { return len(*s) }
 func (s *LoginFormList) At(i int) model.Fielder { return (*s)[i] }
 func (s *LoginFormList) Append() model.Fielder  { v := &LoginForm{}; *s = append(*s, v); return v }
@@ -718,8 +698,6 @@ func (m *Address) DecodeFields(r model.FieldReader) {
 
 type AddressList []*Address
 
-func (s *AddressList) Schema() []model.Field { return nil }
-func (s *AddressList) Pointers() []any     { return nil }
 func (s *AddressList) Len() int             { return len(*s) }
 func (s *AddressList) At(i int) model.Fielder { return (*s)[i] }
 func (s *AddressList) Append() model.Fielder  { v := &Address{}; *s = append(*s, v); return v }
@@ -759,8 +737,6 @@ func (m *UserWithComposition) DecodeFields(r model.FieldReader) {
 
 type UserWithCompositionList []*UserWithComposition
 
-func (s *UserWithCompositionList) Schema() []model.Field { return nil }
-func (s *UserWithCompositionList) Pointers() []any     { return nil }
 func (s *UserWithCompositionList) Len() int             { return len(*s) }
 func (s *UserWithCompositionList) At(i int) model.Fielder { return (*s)[i] }
 func (s *UserWithCompositionList) Append() model.Fielder  { v := &UserWithComposition{}; *s = append(*s, v); return v }
@@ -824,8 +800,6 @@ func (m *UserWithNoTilde) DecodeFields(r model.FieldReader) {
 
 type UserWithNoTildeList []*UserWithNoTilde
 
-func (s *UserWithNoTildeList) Schema() []model.Field { return nil }
-func (s *UserWithNoTildeList) Pointers() []any     { return nil }
 func (s *UserWithNoTildeList) Len() int             { return len(*s) }
 func (s *UserWithNoTildeList) At(i int) model.Fielder { return (*s)[i] }
 func (s *UserWithNoTildeList) Append() model.Fielder  { v := &UserWithNoTilde{}; *s = append(*s, v); return v }
@@ -887,8 +861,6 @@ func (m *ShortAutoInc) DecodeFields(r model.FieldReader) {
 
 type ShortAutoIncList []*ShortAutoInc
 
-func (s *ShortAutoIncList) Schema() []model.Field { return nil }
-func (s *ShortAutoIncList) Pointers() []any     { return nil }
 func (s *ShortAutoIncList) Len() int             { return len(*s) }
 func (s *ShortAutoIncList) At(i int) model.Fielder { return (*s)[i] }
 func (s *ShortAutoIncList) Append() model.Fielder  { v := &ShortAutoInc{}; *s = append(*s, v); return v }
@@ -953,8 +925,6 @@ func (m *OmitEmptyDemo) DecodeFields(r model.FieldReader) {
 
 type OmitEmptyDemoList []*OmitEmptyDemo
 
-func (s *OmitEmptyDemoList) Schema() []model.Field { return nil }
-func (s *OmitEmptyDemoList) Pointers() []any     { return nil }
 func (s *OmitEmptyDemoList) Len() int             { return len(*s) }
 func (s *OmitEmptyDemoList) At(i int) model.Fielder { return (*s)[i] }
 func (s *OmitEmptyDemoList) Append() model.Fielder  { v := &OmitEmptyDemo{}; *s = append(*s, v); return v }

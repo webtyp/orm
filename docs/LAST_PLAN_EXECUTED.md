@@ -1,203 +1,93 @@
 ---
-PLAN: "feat: OmitEmpty omits a zero-valued column from the INSERT"
+PLAN: "chore: drop the Schema()/Pointers() stubs from list types"
 EXECUTOR: jules
 REVIEWER: none
 ---
 
 > This plan is dispatched via the CodeJob workflow. See skill: agents-workflow.
 >
-> **Phase D** of
-> [`NULLABLE_COLUMNS_MASTER_PLAN.md`](https://github.com/webtyp/docs/blob/main/NULLABLE_COLUMNS_MASTER_PLAN.md).
-> Independent of phases A/B/C — it may run in parallel with them.
+> **Phase C** of
+> [`LIST_CONTRACT_MASTER_PLAN.md`](https://github.com/webtyp/docs/blob/main/LIST_CONTRACT_MASTER_PLAN.md).
+> Runs in parallel with the other phase-C repos.
+>
+> **Depends on phase A** (`webtyp.com/model`) and **phase B** (`webtyp.com/ormc`).
+> As the first line of work: `go get webtyp.com/model@latest`. Never add a
+> `replace`, never invent a version.
 
-# Plan — `webtyp.com/orm`: there is no way to leave a column out of an INSERT
+# Plan — `webtyp.com/orm`: a list stops claiming it has columns
 
 ## 0. Context (verified against the repo — do not re-diagnose)
 
-`DB.Create` writes **every** column of `Schema()`:
+`model.FielderSlice` used to embed `model.Fielder`, so every list type had to
+answer "what are your columns?" — a question a sequence of rows cannot have.
+`ormc` therefore emitted, on every generated list:
 
 ```go
-for i, f := range schema {
-    // Skip autoincrement PK fields with zero value — let the DB assign them.
-    if f.IsPK() && f.IsAutoInc() {
-        if v, ok := allValues[i].(int); ok && v == 0 {
-            continue
-        }
-    }
-    columns = append(columns, f.Name)
-    values = append(values, allValues[i])
-}
+func (s *XList) Schema() []model.Field { return nil }
+func (s *XList) Pointers() []any       { return nil }
 ```
 
-So a consumer that needs one column left out — to let the database store NULL,
-or apply its own default — **cannot express it**. `model.Field.OmitEmpty`
-exists and is documented as *"omit from JSON when zero value"*: it guards
-`EncodeFields` only, and `Create` never reads it.
+Nothing ever called them: the json codec reaches rows through
+`Len()`/`At()`/`Append()` and type-asserts the **element**, never the list.
 
-The cost of that gap is already visible downstream. `webtyp/auth` needs
-email-less LAN users, and its `email` column is `Unique` — writing `""` twice
-collides, while NULL is exactly what a unique index allows to repeat. With no
-way to omit the column, it had to reach past the ORM:
+The harm is that having them made the lie true for the compiler. A list
+satisfies `model.Fielder`, so `Accepts(&XList{})` compiles and
+`mcp/tool_schema.go` believes it, publishing the tool **advertising that it
+takes no arguments** — no error, no log.
 
-```go
-// auth/authority/users.go — what this plan deletes
-q := storage.Query{Action: storage.ActionCreate, Table: u.ModelName(),
-    Columns: []string{"id", "name", "phone", "status", "avatar", "created_at"},
-    Values:  []any{id, name, phone, "active", "", now}}
-conn := db.RawConn()
-plan, err := conn.Compile(q, &u)
-```
+Phase A narrowed `FielderSlice` to `Len`/`At`/`Append`; phase B stopped `ormc`
+emitting the two stubs. This repo now carries them as dead weight. Removing them
+is what closes the hole **here**: until it regenerates, its list types still
+satisfy `model.Fielder`.
 
-A consumer hand-building a `storage.Query` and compiling it itself is the ORM
-leaking: the column list is now duplicated in the consumer and drifts the moment
-the model gains a field.
+**This is not a size optimization.** Measured: ~27 bytes per list type, 0,02 %
+of a real WASM client. Do not justify or scope this change by binary size.
 
-`Create` already has the precedent for the correct behaviour, in the very loop
-above: the autoincrement PK is skipped *so the database can supply the value*.
-`OmitEmpty` is the same intent, declared by the model author instead of inferred.
-
-**Blast radius, measured before proposing this.** `OmitEmpty` appears in 3 files
-across the whole monorepo, and every existing definition is in `mcp/model.go` —
-transport-only models with **no `DB:` tag**, never persisted. No persisted model
-in the ecosystem changes behaviour.
-
-## Design gate (api-design — five answers)
-
-### 1. Prior art
-
-| Concern | Frameworks | Why we differ |
-|---|---|---|
-| Omit a column from INSERT | **GORM** (`omitempty` is absent; uses `Omit("col")` per call, or pointer/`sql.Null*` fields for "unset") | A per-call `Omit("email")` puts the rule at every call site, where it is forgotten once and wrong forever. Ours is declared once on the model, where the reason lives. |
-| Omit a column from INSERT | **Ent** (`Optional()` on the field → generated builder simply never sets it), **Bun** (`nullzero` struct tag: a zero value is written as NULL) | Same shape as ours, declared at the schema. Bun's `nullzero` is the closest analogue; we reuse the flag the model already has rather than adding a second one. |
-| Omit a column from INSERT | **Django** (`null=True` + `blank=True` on the field), **ActiveRecord** (DB default + attribute left unassigned) | Both make it a field-level declaration too. We differ only in not adding new vocabulary: `OmitEmpty` already exists and already means "when zero, leave it out". |
-
-### 2. Novice-name test
-
-No new name. `OmitEmpty` read aloud is "omit it when it is empty" — which is
-exactly what this makes it do on the INSERT, and what it already does on the
-wire. The current split, where it means that in one direction and nothing in the
-other, is the part a junior cannot predict.
-
-### 3. Complexity ledger
-
-```
-Concepts the developer must learn   +0 (OmitEmpty already exists) / −1 (nobody learns "the ORM cannot omit a column")
-Files they must touch to do X       +0 / −1 (auth deletes its hand-built storage.Query)
-Lines at the call site              +0 / −20 (the RawConn bypass in auth)
-Ways to do the same thing           +0 / −1 (was: OmitEmpty for the wire, RawConn for the INSERT)
-```
-
-### 4. Where it belongs
-
-`orm` owns `Create` and the column list it builds. `model` owns the flag and
-keeps owning it — this plan does not change `model.Field`. Putting the
-behaviour anywhere else would mean every consumer re-deriving the column list,
-which is the defect being removed.
-
-### 5. What it deletes
-
-- The need for `DB.RawConn()` in `webtyp/auth` (deleted there in phase E).
-- The split meaning of `OmitEmpty`: one flag, one rule, both directions.
+**Anti-footgun.** Do NOT remove the `EncodeFields`/`DecodeFields` no-ops from
+list types. `json.Encode` takes a `model.Encodable`, so deleting those breaks
+every call that serializes a list. That alternative was measured and rejected.
+`Len`, `At` and `Append` are the whole slice contract now and must survive
+untouched.
 
 ## Quality rules
 
 ```
-RULE: no stdlib beyond what the repo already imports — webtyp/fmt, webtyp/model,
-      webtyp/storage only. Do NOT reach for reflect.
+RULE: never hand-edit a generated *_orm.go — run the generator.
 RULE: every repeated string is a named constant; string literals forbidden in logic.
-RULE: no silent fallback — the zero test is explicit per storage kind, never a
-      catch-all that guesses.
+RULE: this repo's behaviour must not change; only dead methods disappear.
 ```
 
-## Stage 1 — `Create` honours `OmitEmpty`
+## Stage 1 — regenerate with the new `ormc`
 
-**File:** `db.go`.
+**Files:** `tests/models_orm.go` (15 list types).
 
-In the `Create` loop, after the existing autoincrement-PK skip, add the
-`OmitEmpty` skip:
-
-```go
-// A zero value on an OmitEmpty field is left out of the INSERT entirely, so the
-// database applies its own default — NULL for a nullable column. That is the
-// only way to store NULL in a UNIQUE column, where "" would collide and NULL is
-// the value a unique index allows to repeat.
-if f.OmitEmpty && isZeroValue(allValues[i]) {
-    continue
-}
-```
-
-Add the helper in the same file, typed per storage kind — **no `reflect`**:
-
-```go
-func isZeroValue(v any) bool {
-	switch x := v.(type) {
-	case string:
-		return x == ""
-	case int:
-		return x == 0
-	case int64:
-		return x == 0
-	case float64:
-		return x == 0
-	case bool:
-		return !x
-	case []byte:
-		return len(x) == 0
-	case nil:
-		return true
-	}
-	return false
-}
-```
-
-A PK must never be skipped this way even if someone marks it `OmitEmpty` — a row
-with no primary key is not a row. Guard it:
-
-```go
-if f.OmitEmpty && !f.IsPK() && isZeroValue(allValues[i]) {
-```
-
-## Stage 2 — consumer-shaped test (the publication rule)
-
-**File:** `tests/omitempty_test.go` (new), in the existing `tests` package that
-already carries `models_orm.go`.
-
-1. Add a model to `tests/models.go` (or wherever the definitions in that package
-   live) with a nullable, unique, `OmitEmpty` column — the shape the real
-   consumer has:
-   ```go
-   {Name: "email", Type: model.Text(), OmitEmpty: true, DB: &model.FieldDB{Unique: true}},
-   ```
-   Regenerate that package's `_orm.go` with `ormc`.
-2. The test, against the in-memory backend the other tests in this package use:
-   - creating **two** records with an empty email succeeds — the proof that the
-     column was omitted and the unique index saw NULL, not `""` twice;
-   - a record with a real email round-trips that email;
-   - two records with the **same** real email still fail — omitting the zero
-     case must not relax the constraint;
-   - a non-`OmitEmpty` zero-valued column is still written (assert a record with
-     an empty non-`OmitEmpty` text field reads back as `""`, not a DB default).
-3. Assert on `Create`'s emitted column list where the backend exposes it, so the
-   test fails for the right reason rather than only via the unique index.
+1. `go get webtyp.com/model@latest` so `FielderSlice` is the narrowed one.
+2. Run `ormc` at the repo root. It rewrites the generated file(s) in place; the
+   header is `DO NOT EDIT. generated by webtyp.com/ormc`.
+3. Confirm the diff contains **only** removals of the two stub methods —
+   15 `Schema()` and 15 `Pointers()` lines — and nothing else. If
+   any other line moved, the installed `ormc` predates phase B: stop and say so
+   in the PR instead of committing the drift.
 
 ## Acceptance criteria
 
 1. `go build ./...`, `go vet ./...`, `go test ./...` green.
-2. `grep -rn "reflect" --include='*.go' .` → empty.
-3. The new test fails if the `OmitEmpty` skip is removed from `Create` — verify
-   by temporarily reverting stage 1 before finishing.
-4. `grep -rn "TODO\|FIXME\|Deprecated" --include='*.go' .` → only hits that
+2. `grep -rn "List) Schema() \[\]model.Field" --include='*.go' .` → empty.
+3. `grep -rn "List) Pointers()" --include='*.go' .` → empty.
+4. `grep -rnc "Append() model.Fielder" --include='*.go' .` → unchanged from
+   before the change: the traversal contract survived.
+5. `go.mod` requires the phase A tag of `webtyp.com/model`; no `replace`.
+6. `grep -rn "TODO\|FIXME\|Deprecated" --include='*.go' .` → only hits that
    predate this change.
 
 ## Out of scope
 
-- `UpdateFields` and `Update`. `UpdateFields` already takes an explicit column
-  list, and making `Update` skip zero values would silently make "clear this
-  field" impossible — a different decision, not this one.
-- Reading NULL back — phases A/B/C.
-- Changing `model.Field` or its documentation beyond what phase E needs.
+- Changing `model.FielderSlice` itself — phase A, already shipped.
+- Changing what `ormc` emits — phase B, already shipped.
+- Removing the `EncodeFields`/`DecodeFields` no-ops — measured and rejected.
+- Any behaviour change in this repo. If a test fails, the cause is upstream:
+  report it, do not paper over it here.
 
 | Stage | Files | Action |
 |---|---|---|
-| 1 | `db.go` | `Create` skips zero-valued `OmitEmpty` non-PK columns; `isZeroValue` helper |
-| 2 | `tests/omitempty_test.go` + the package's model definitions | consumer-shaped proof, regenerated with `ormc` |
+| 1 | `tests/models_orm.go` | regenerate with `ormc`; 15 stub pairs disappear |
