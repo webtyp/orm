@@ -2,8 +2,9 @@
 PLAN: "fix: ReadOne/ReadAll must SELECT explicit columns, never rely on SELECT *"
 EXECUTOR: jules
 REVIEWER: none
-STATUS: running
+STATUS: review
 SESSION: 6123962758134431652
+PR: https://github.com/webtyp/orm/pull/57
 ---
 
 > This plan is dispatched via the CodeJob workflow. See skill: **agents-workflow**.
