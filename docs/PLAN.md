@@ -2,6 +2,8 @@
 PLAN: "fix: ReadOne/ReadAll must SELECT explicit columns, never rely on SELECT *"
 EXECUTOR: jules
 REVIEWER: none
+STATUS: running
+SESSION: 6123962758134431652
 ---
 
 > This plan is dispatched via the CodeJob workflow. See skill: **agents-workflow**.
