@@ -99,9 +99,15 @@ func (qb *QB) ReadOne() error {
 	if err := validateQuery(storage.ActionReadOne, qb.model); err != nil {
 		return err
 	}
+	schema := qb.model.Schema()
+	columns := make([]string, len(schema))
+	for i, f := range schema {
+		columns[i] = f.Name
+	}
 	q := storage.Query{
 		Action:     storage.ActionReadOne,
 		Table:      qb.model.ModelName(),
+		Columns:    columns,
 		Conditions: qb.conds,
 		OrderBy:    qb.orderBy,
 		GroupBy:    qb.groupBy,
@@ -128,9 +134,15 @@ func (qb *QB) ReadAll(new func() model.Model, onRow func(model.Model)) error {
 	if err := validateQuery(storage.ActionReadAll, qb.model); err != nil {
 		return err
 	}
+	schema := qb.model.Schema()
+	columns := make([]string, len(schema))
+	for i, f := range schema {
+		columns[i] = f.Name
+	}
 	q := storage.Query{
 		Action:     storage.ActionReadAll,
 		Table:      qb.model.ModelName(),
+		Columns:    columns,
 		Conditions: qb.conds,
 		OrderBy:    qb.orderBy,
 		GroupBy:    qb.groupBy,
