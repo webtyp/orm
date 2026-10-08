@@ -2,8 +2,9 @@
 PLAN: "feat(orm): IsNotFound — detect not-found without == between interfaces; ReadOne uses storage.IsNoRows"
 EXECUTOR: jules
 REVIEWER: none
-STATUS: running
+STATUS: review
 SESSION: 13414063006642335769
+PR: https://github.com/webtyp/orm/pull/58
 ---
 
 # Plan — `orm.IsNotFound(err)`
