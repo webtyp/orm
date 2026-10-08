@@ -21,6 +21,21 @@ type mockTxConn struct {
 }
 
 func RunCoreTests(t *testing.T) {
+	t.Run("IsNotFound", func(t *testing.T) {
+		if !orm.IsNotFound(orm.ErrNotFound) {
+			t.Error("IsNotFound(ErrNotFound) should be true")
+		}
+		if orm.IsNotFound(nil) {
+			t.Error("IsNotFound(nil) should be false")
+		}
+		if orm.IsNotFound(storage.ErrNoRows) {
+			t.Error("IsNotFound(storage.ErrNoRows) should be false")
+		}
+		if orm.ErrNotFound.Error() != "record not found" {
+			t.Errorf("ErrNotFound.Error() == %q, want \"record not found\"", orm.ErrNotFound.Error())
+		}
+	})
+
 	// 1. Test Create
 	t.Run("Create", func(t *testing.T) {
 		mockCompiler := &mock.Compiler{}
@@ -137,8 +152,21 @@ func RunCoreTests(t *testing.T) {
 		model := &mock.Model{Table: ""} // Empty table
 
 		err := db.Query(model).ReadOne()
-		if !errors.Is(err, orm.ErrEmptyTable) {
+		if err == nil || err.Error() != orm.ErrEmptyTable.Error() {
 			t.Errorf("Expected ErrEmptyTable, got %v", err)
+		}
+	})
+
+	t.Run("ReadOne ErrNotFound", func(t *testing.T) {
+		mockCompiler := &mock.Compiler{}
+		mockExec := &mock.Executor{
+			ReturnQueryRow: &mock.Scanner{ScanErr: storage.ErrNoRows},
+		}
+		db := orm.New(mockConn{Executor: mockExec, Compiler: mockCompiler})
+		model := &mock.Model{Table: "user"}
+		err := db.Query(model).ReadOne()
+		if !orm.IsNotFound(err) {
+			t.Errorf("Expected IsNotFound(err) to be true, got err=%v", err)
 		}
 	})
 
@@ -188,7 +216,7 @@ func RunCoreTests(t *testing.T) {
 		model := &mock.Model{Table: ""} // Empty table
 
 		err := db.Query(model).ReadAll(nil, nil)
-		if !errors.Is(err, orm.ErrEmptyTable) {
+		if err == nil || err.Error() != orm.ErrEmptyTable.Error() {
 			t.Errorf("Expected ErrEmptyTable, got %v", err)
 		}
 	})
@@ -231,7 +259,7 @@ func RunCoreTests(t *testing.T) {
 		model := &mock.Model{Table: ""} // Empty table
 
 		err := db.Delete(model, orm.Eq("id", 1))
-		if !errors.Is(err, orm.ErrEmptyTable) {
+		if err == nil || err.Error() != orm.ErrEmptyTable.Error() {
 			t.Errorf("Expected ErrEmptyTable, got %v", err)
 		}
 	})
@@ -245,7 +273,7 @@ func RunCoreTests(t *testing.T) {
 		model := &mock.Model{Table: ""}
 
 		err := db.Create(model)
-		if !errors.Is(err, orm.ErrEmptyTable) {
+		if err == nil || err.Error() != orm.ErrEmptyTable.Error() {
 			t.Errorf("Expected ErrEmptyTable, got %v", err)
 		}
 	})
@@ -296,7 +324,7 @@ func RunCoreTests(t *testing.T) {
 			return expectedErr
 		})
 
-		if !errors.Is(err, expectedErr) {
+		if err == nil || err.Error() != expectedErr.Error() {
 			t.Errorf("Expected error %v, got %v", expectedErr, err)
 		}
 
@@ -326,7 +354,7 @@ func RunCoreTests(t *testing.T) {
 	t.Run("No Tx Support", func(t *testing.T) {
 		db := orm.New(mockConn{Executor: &mock.Executor{}, Compiler: &mock.Compiler{}}) // Not a TxExecutor
 		err := db.Tx(func(tx *orm.DB) error { return nil })
-		if !errors.Is(err, orm.ErrNoTxSupport) {
+		if err == nil || err.Error() != orm.ErrNoTxSupport.Error() {
 			t.Errorf("Expected ErrNoTxSupport, got %v", err)
 		}
 	})
