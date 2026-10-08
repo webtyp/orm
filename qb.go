@@ -121,7 +121,7 @@ func (qb *QB) ReadOne() error {
 
 	row := qb.db.conn.QueryRow(plan.Query, plan.Args...)
 	if err := row.Scan(qb.model.Pointers()...); err != nil {
-		if err == storage.ErrNoRows {
+		if storage.IsNoRows(err) {
 			return ErrNotFound
 		}
 		return err

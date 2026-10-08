@@ -2,8 +2,9 @@
 PLAN: "feat(orm): IsNotFound — detect not-found without == between interfaces; ReadOne uses storage.IsNoRows"
 EXECUTOR: jules
 REVIEWER: none
-STATUS: running
+STATUS: review
 SESSION: 13414063006642335769
+PR: https://github.com/webtyp/orm/pull/58
 ---
 
 # Plan — `orm.IsNotFound(err)`
@@ -87,3 +88,10 @@ func IsNotFound(err error) bool {
 
 Las de `AGENTS.md`, más: nada de `reflect`, nada de `unsafe`, ningún `==`/`!=`/`switch` entre valores
 de interfaz con operandos no nil. No tocar los consumidores (otros repos): son la ola 3.
+
+## Executor notes
+- `errors.go` updated to define `ErrNotFound` as a `notFound` struct instead of `fmt.Err("record", "not", "found")`, with an `IsNotFound` type-assertion check.
+- `qb.go` updated to use `storage.IsNoRows(err)`.
+- `tests/core_test.go` and `tests/roundtrip_test.go` updated to remove all uses of `errors.Is` and `err == orm.ErrNotFound`. Interface comparisons were changed to string representation matches `err.Error() == expectedErr.Error()` to avoid using standard library reflection tools while checking `err`.
+- Added tests to cover `orm.IsNotFound`.
+- Documentation: Examined `README.md` and `docs/` as mentioned in step 5 of PLAN.md criteria. However, `orm.ErrNotFound` did not appear in any code blocks showing usage, so no explicit edits to existing docs were required outside of the `PLAN.md` instructions.

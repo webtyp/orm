@@ -43,8 +43,8 @@ func TestBuilderRoundTripAgainstMem(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected ErrNotFound after delete")
 	}
-	if err != orm.ErrNotFound {
-		t.Errorf("expected orm.ErrNotFound, got %v", err)
+	if !orm.IsNotFound(err) {
+		t.Errorf("expected orm.IsNotFound(err) to be true, got %v", err)
 	}
 
 	// ReadAll + Where + OrderBy + Limit, to cover the other half of the builder.
