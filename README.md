@@ -20,7 +20,6 @@ This repository is the **ergonomic layer only** — the equivalent of `database/
 |---|---|---|
 | **storage** | [webtyp/storage](https://github.com/webtyp/storage) | Storage port (`Executor`/`Compiler`/`Query`/`Condition`/`Plan`, `mock`, `mem`) — the equivalent of `database/sql/driver`. A backend implements `storage.Conn`; `orm.New(conn)` takes one. |
 | **ormc** | [webtyp/ormc](https://github.com/webtyp/ormc) | Build-time code generator. |
-| **ddlc** | [webtyp/ddlc](https://github.com/webtyp/ddlc) | SQL Schema (DDL) exporter and utilities. |
 | **sqlmcp** | [webtyp/sqlmcp](https://github.com/webtyp/sqlmcp) | MCP tool provider for LLM interaction. |
 
 ## Installation
@@ -138,7 +137,7 @@ The `ormc` generator produces:
 - `Validate(action byte) error` (calling `model.ValidateFields`). Always generated.
 - `ModelName() string`.
 - `ReadOneT()`, `ReadAllT()`, `TList` type (for DB models).
-- `SchemaExt() []ddlc.FieldExt` (requires [webtyp/ddlc](https://github.com/webtyp/ddlc)).
+- `SchemaExt() []model.FieldExt` (foreign keys; `model.FieldExt` lives in [webtyp/model](https://github.com/webtyp/model)).
 
 ## More Documentation
 
