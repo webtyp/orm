@@ -139,6 +139,10 @@ The `ormc` generator produces:
 - `ReadOneT()`, `ReadAllT()`, `TList` type (for DB models).
 - `SchemaExt() []model.FieldExt` (foreign keys; `model.FieldExt` lives in [webtyp/model](https://github.com/webtyp/model)).
 
+## Errors
+
+`ReadOne` returns `orm.ErrNotFound` when no row matches; detect it with `orm.IsNotFound(err)`. It is a "not found" refusal (`model.KindOf(err) == model.ErrorNotFound`), so `rpc.WriteError` answers it 404 without the module translating it.
+
 ## More Documentation
 
 - [Architecture](docs/ARQUITECTURE.md)

@@ -1,6 +1,9 @@
 package orm
 
-import "webtyp.com/fmt"
+import (
+	"webtyp.com/fmt"
+	"webtyp.com/model"
+)
 
 // notFound is the concrete type of ErrNotFound. IsNotFound recognises it with a
 // type assertion: TinyGo compiles that to a type-code comparison, while ==
@@ -9,6 +12,10 @@ import "webtyp.com/fmt"
 type notFound struct{}
 
 func (notFound) Error() string { return "record not found" }
+
+// Kind makes a missing row a "not found" refusal (model.KindOf), so the
+// transport answers 404 without the module translating it by hand.
+func (notFound) Kind() model.ErrorKind { return model.ErrorNotFound }
 
 // ErrNotFound is returned when ReadOne() finds no matching row. Translates storage.ErrNoRows —
 // storage itself has no concept of "not found", only "no rows" (see qb.go's ReadOne). Detect it with IsNotFound, never with ==.
