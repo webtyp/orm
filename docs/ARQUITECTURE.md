@@ -10,7 +10,7 @@ This repository now contains the **runtime only**. Other components have been mo
 |---|---|---|
 | **ormc** | [webtyp/ormc](https://github.com/webtyp/ormc) | Build-time code generator and schema synchronization logic. |
 | **ddlc** | [webtyp/ddlc](https://github.com/webtyp/ddlc) | SQL Schema (DDL) exporter and topological sorting. |
-| **ddl** | [webtyp/ddl](https://github.com/webtyp/ddl) | Runtime DDL: `CreateTable`/`DropTable`/`Sync`/`SyncSchema` + `ddl/conformance`. |
+| **ddl** | [webtyp/ddl](https://github.com/webtyp/ddl) | Runtime DDL: `DropTable`/`CreateDatabase`/`Sync`/`SyncSchema` + `ddl/conformance`. |
 | **sqlmcp** | [webtyp/sqlmcp](https://github.com/webtyp/sqlmcp) | MCP tool provider for LLM interaction. |
 
 ## Puerto de almacenamiento (2026-07-16, segunda pasada)
