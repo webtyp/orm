@@ -7,4 +7,4 @@ require (
 	webtyp.com/model v0.2.12
 )
 
-require webtyp.com/storage v0.1.8
+require webtyp.com/storage v0.1.18
