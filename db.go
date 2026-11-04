@@ -147,8 +147,12 @@ func (d *DB) UpdateFields(m model.Model, fields []string, cond storage.Condition
 	for i, f := range schema {
 		for _, name := range fields {
 			if f.Name == name {
+				v := allValues[i]
+				if f.OmitEmpty && !f.IsPK() && isZeroValue(v) {
+					v = nil // same rule as Create and Update: empty OmitEmpty is NULL
+				}
 				columns = append(columns, f.Name)
-				values = append(values, allValues[i])
+				values = append(values, v)
 				break
 			}
 		}
@@ -182,11 +186,19 @@ func (d *DB) Update(m model.Model, cond storage.Condition, rest ...storage.Condi
 	for i, f := range schema {
 		columns[i] = f.Name
 	}
+	values := model.ReadValues(schema, m.Pointers())
+	for i, f := range schema {
+		// Same rule as Create: an empty OmitEmpty field is NULL, never "" — otherwise the second row with an
+		// empty value collides in a UNIQUE column the moment any update rewrites it.
+		if f.OmitEmpty && !f.IsPK() && isZeroValue(values[i]) {
+			values[i] = nil
+		}
+	}
 	q := storage.Query{
 		Action:     storage.ActionUpdate,
 		Table:      m.ModelName(),
 		Columns:    columns,
-		Values:     model.ReadValues(schema, m.Pointers()),
+		Values:     values,
 		Conditions: conds,
 	}
 	plan, err := d.conn.Compile(q, m)

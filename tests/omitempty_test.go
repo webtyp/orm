@@ -94,3 +94,36 @@ func TestOmitEmptyMemRoundTrip(t *testing.T) {
 		t.Errorf("non-OmitEmpty nickname = %q, want empty string (still written)", bareGot.Nickname)
 	}
 }
+
+// Update must store an empty OmitEmpty field the same way Create does — as NULL — or a second row with an
+// empty value collides in a UNIQUE column (two staff members without e-mail: duplicate key "user_email_key").
+func TestOmitEmptyUpdateWritesNull(t *testing.T) {
+	compiler := &mock.Compiler{}
+	exec := &mock.Executor{}
+	db := orm.New(mockConn{Executor: exec, Compiler: compiler})
+
+	if err := db.Update(&OmitEmptyDemo{Id: "1", Nickname: "nick"}, orm.Eq("id", "1")); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	for i, c := range compiler.LastQuery.Columns {
+		switch c {
+		case "email":
+			if compiler.LastQuery.Values[i] != nil {
+				t.Errorf("empty OmitEmpty email must be written as NULL (nil), got %#v", compiler.LastQuery.Values[i])
+			}
+		case "nickname":
+			if compiler.LastQuery.Values[i] != "nick" {
+				t.Errorf("nickname = %#v, want nick", compiler.LastQuery.Values[i])
+			}
+		}
+	}
+
+	if err := db.Update(&OmitEmptyDemo{Id: "1", Email: "a@x.com"}, orm.Eq("id", "1")); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	for i, c := range compiler.LastQuery.Columns {
+		if c == "email" && compiler.LastQuery.Values[i] != "a@x.com" {
+			t.Errorf("real email = %#v, want a@x.com", compiler.LastQuery.Values[i])
+		}
+	}
+}
