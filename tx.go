@@ -5,7 +5,14 @@ import "webtyp.com/storage"
 // Tx executes a function within a transaction. The underlying storage.Conn must implement
 // storage.TxExecutor (type-asserted here) — most backends do; mem.New() also implements it as a
 // no-op so tests can exercise this path without a real transactional backend.
+//
+// Called on a *DB that is already inside a transaction, it joins it: fn runs on the same transaction and the
+// outermost Tx commits or rolls back. A module method that opens its own Tx can then be called both alone and by
+// code already in a transaction (a data import runs every step in one).
 func (d *DB) Tx(fn func(tx *DB) error) error {
+	if _, inside := d.conn.(boundConn); inside {
+		return fn(d)
+	}
 	txExec, ok := d.conn.(storage.TxExecutor)
 	if !ok {
 		return ErrNoTxSupport
