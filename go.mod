@@ -9,7 +9,7 @@ require (
 
 require (
 	webtyp.com/crud v0.0.5
-	webtyp.com/storage v0.1.18
+	webtyp.com/storage v0.1.19
 )
 
 require (
