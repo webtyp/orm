@@ -1,93 +1,124 @@
 ---
-PLAN: "chore: drop the Schema()/Pointers() stubs from list types"
-EXECUTOR: jules
+PLAN: "feat: orm.TenantStore and orm.GlobalStore implement crud.Store — the tenant is stamped and filtered on every call"
+EXECUTOR: antigravity
 REVIEWER: none
 ---
 
-> This plan is dispatched via the CodeJob workflow. See skill: agents-workflow.
->
-> **Phase C** of
-> [`LIST_CONTRACT_MASTER_PLAN.md`](https://github.com/webtyp/docs/blob/main/LIST_CONTRACT_MASTER_PLAN.md).
-> Runs in parallel with the other phase-C repos.
->
-> **Depends on phase A** (`webtyp.com/model`) and **phase B** (`webtyp.com/ormc`).
-> As the first line of work: `go get webtyp.com/model@latest`. Never add a
-> `replace`, never invent a version.
+> Read AGENTS.md at the repo root before any change.
+> **Finish by yourself:** when the delivery check passes, commit after every stage and stop. Never ask whether to
+> proceed. This plan runs **locally** and is **published as soon as the delivery check passes** (no `replace` anywhere).
+> Never run `git reset`, `git restore`, `git checkout -- <file>` or `git stash` on your own work.
 
-# Plan — `webtyp.com/orm`: a list stops claiming it has columns
+# Plan: `orm` implements `crud.Store`
 
-## 0. Context (verified against the repo — do not re-diagnose)
+## Tools
 
-`model.FielderSlice` used to embed `model.Fielder`, so every list type had to
-answer "what are your columns?" — a question a sequence of rows cannot have.
-`ormc` therefore emitted, on every generated list:
+```bash
+go install webtyp.com/devflow/cmd/gotest@latest
+go get webtyp.com/crud@latest webtyp.com/model@latest   # model must contain model.SplitKey (A6.1)
+```
+`crud@latest` must contain `crud.Store`, `crud.Tx`, `crud.Query`, `crud.ModelChecker`, `crud/storetest` (plan A6.2); if
+`go doc webtyp.com/crud Store` fails, stop. `orm` imports `crud` (the contract); `crud` never imports `orm`.
+
+## Why
+
+Decision D20 of `webtyp/docs/ARCHITECTURE_MASTER_PLAN.md`: `crud` persists tables through a `crud.Store`. The tenant must be
+impossible to forget: a module passes `orm.TenantStore(m.db, m.tenantID, m.deps.IDs)` once, and every read and write of
+that table carries `tenant_id` — stamped on insert, filtered on read, update and delete.
+
+## APIs used
+
+| Symbol | Signature |
+|---|---|
+| `crud.Tx` | `ReadOne(rec model.Model, id string) error`; `ReadAll(newRow func() model.Model, q crud.Query, onRow func(model.Model)) error`; `Create(rec model.Model) error`; `UpdateFields(rec model.Model, id string, fields []string) error`; `Delete(rec model.Model, id string) error` |
+| `crud.Store` | `Tx` + `NewID() string` |
+| `crud.Transactional` | `Atomic(fn func(tx crud.Tx) error) error` (optional capability; orm's stores implement it) |
+| `crud.Query` | `struct{ Conditions []storage.Condition; Order []storage.Order; After string; Limit int64 }` |
+| `crud.ModelChecker` | `CheckModel(m model.Model) error` |
+| `crud.ErrOrCondition` | `model.Invalid` |
+| `storetest.Run` | `func Run(t *testing.T, newStore func(t *testing.T) crud.Store)` (`webtyp.com/crud/storetest`) |
+
+## Stage 1 — `store.go` (new)
 
 ```go
-func (s *XList) Schema() []model.Field { return nil }
-func (s *XList) Pointers() []any       { return nil }
+// FieldTenant is the column a TenantStore stamps and filters.
+const FieldTenant = "tenant_id"
+
+var (
+	ErrNoTenantField  = fmt.Err("orm: TenantStore on a table without a tenant_id field; add the field or use orm.GlobalStore")
+	ErrTenantOnGlobal = fmt.Err("orm: GlobalStore on a table with a tenant_id field; use orm.TenantStore(db, tenantID, ids)")
+	ErrEmptyTenant    = fmt.Err("orm: TenantStore with an empty tenant id; pass the installation's tenant from Deps")
+)
+
+// TenantStore is the crud.Store of one tenant's rows: every insert gets tenant_id = tenantID and every read,
+// update and delete adds tenant_id = tenantID. An empty tenantID panics at construction (a wiring mistake).
+//
+//	store := orm.TenantStore(m.db, m.tenantID, m.deps.IDs)
+func TenantStore(db *DB, tenantID string, ids model.IDGenerator) *Store {
+	if tenantID == "" {
+		panic(ErrEmptyTenant)
+	}
+	return &Store{db: db, tenant: tenantID, ids: ids}
+}
+
+// GlobalStore is the crud.Store of a table without tenants (a catalog shared by every installation).
+//
+//	store := orm.GlobalStore(m.db, m.deps.IDs)
+func GlobalStore(db *DB, ids model.IDGenerator) *Store { return &Store{db: db, ids: ids} }
+
+// Store is orm's crud.Store: it also implements crud.Transactional (Atomic) and crud.ModelChecker.
+// A module keeps the concrete *orm.Store when it needs Atomic outside crud (readers, imports).
+type Store struct {
+	db     *DB
+	tenant string // "" = global
+	ids    model.IDGenerator
+}
 ```
 
-Nothing ever called them: the json codec reaches rows through
-`Len()`/`At()`/`Append()` and type-asserts the **element**, never the list.
+Composite keys (D22): `keyConds(m, id) ([]storage.Condition, error)` = one `storage.Eq(<pk field>, part)` per primary-key field in schema order, from `model.SplitKey(id, <number of pk fields>)` (a single key is one part); not ok → an error of kind `model.ErrorNotFound`. `ReadOne`, `UpdateFields` and `Delete` use `keyConds` instead of `Eq(pk, id)`. `ReadAll` on a composite key: `q.After != ""` → `crud.ErrAfterCompositeKey`; default order = every pk column ascending.
 
-The harm is that having them made the lie true for the compiler. A list
-satisfies `model.Fielder`, so `Accepts(&XList{})` compiles and
-`mcp/tool_schema.go` believes it, publishing the tool **advertising that it
-takes no arguments** — no error, no log.
+Methods (all on `*Store`; `pk(m)` = name of the field with `IsPK()`; `tenantIdx(m)` = index of `FieldTenant` in `m.Schema()` or -1):
 
-Phase A narrowed `FielderSlice` to `Len`/`At`/`Append`; phase B stopped `ormc`
-emitting the two stubs. This repo now carries them as dead weight. Removing them
-is what closes the hole **here**: until it regenerates, its list types still
-satisfy `model.Fielder`.
+- `CheckModel(m)`: tenant store and `tenantIdx(m) < 0` → `ErrNoTenantField`; global store and `tenantIdx(m) >= 0` → `ErrTenantOnGlobal`.
+- `scope(conds)`: rejects any condition with `Logic() == "OR"` (`crud.ErrOrCondition`); returns `conds` with
+  `storage.Eq(FieldTenant, s.tenant)` **first** when tenant store.
+- `ReadOne(rec, id)`: `s.db.Query(rec)` with the scoped conditions `[Eq(pk, id)]` (use the internal `addCondition`), `ReadOne()`.
+- `ReadAll(newRow, q, onRow)`: `q.After != ""` with `len(q.Order) > 0` → `crud.ErrAfterWithOrder`; `s.db.Query(newRow())`, scoped `q.Conditions`, `Gt(pk, q.After)` when `q.After != ""`,
+  each `q.Order` applied in order (or `OrderBy(pk).Asc()` when empty), `Limit(int(q.Limit))` when > 0, `ReadAll(newRow, onRow)`.
+  If the query builder has no way to take a `storage.Order` value, add an unexported helper in this repo that maps it (same package).
+- `Create(rec)`: tenant store → set `*rec.Pointers()[tenantIdx].(*string) = s.tenant` (overwrites whatever came); `s.db.Create(rec)`.
+- `UpdateFields(rec, id, fields)`: `fields` containing `FieldTenant` → `crud.ErrServerOnlyField`; `s.db.UpdateFields(rec, fields, scoped Eq(pk,id)...)`.
+- `Delete(rec, id)`: `s.db.Delete(rec, scoped Eq(pk, id)...)`.
+- `Atomic(fn)`: `s.db.Tx(func(tx *DB) error { return fn(&Store{db: tx, tenant: s.tenant, ids: s.ids}) })`.
+- `NewID()`: `s.ids.NewID()`.
 
-**This is not a size optimization.** Measured: ~27 bytes per list type, 0,02 %
-of a real WASM client. Do not justify or scope this change by binary size.
+`var _ crud.Store = (*Store)(nil)`, `var _ crud.Transactional = (*Store)(nil)` and `var _ crud.ModelChecker = (*Store)(nil)`.
 
-**Anti-footgun.** Do NOT remove the `EncodeFields`/`DecodeFields` no-ops from
-list types. `json.Encode` takes a `model.Encodable`, so deleting those breaks
-every call that serializes a list. That alternative was measured and rejected.
-`Len`, `At` and `Append` are the whole slice contract now and must survive
-untouched.
+## Stage 2 — tests (`tests/store_test.go`, rows in `docs/TESTS.md`), real storage `storage/mem`
 
-## Quality rules
+| Test | Setup → expected |
+|---|---|
+| `TestStore_Conformance` | `storetest.Run(t, func(t *testing.T) crud.Store { return orm.GlobalStore(orm.New(mem.New()), ids) })` passes (migrate the storetest model first if `mem` needs it) |
+| `TestTenantStore_ReadsOnlyItsTenant` | rows of tenants a and b; `TenantStore(db,"a",ids).ReadAll` → only a's |
+| `TestTenantStore_ReadOneOtherTenantIsNotFound` | row of b; store a `ReadOne(id)` → kind `model.ErrorNotFound` |
+| `TestTenantStore_CreateOverwritesTenant` | create with `tenant_id:"b"` through store a → stored `tenant_id == "a"` |
+| `TestTenantStore_UpdateOtherTenantChangesNothing` | store a updates b's id → b's row unchanged |
+| `TestStore_CompositeKey` | table PK (room_id, equipment_id); Create r1/e7; `ReadOne(rec, "r1/e7")` → found; `Delete(rec, "r1/e7")` → gone; `ReadOne(rec, "r1")` → not found |
+| `TestStore_ReadAllOrdered` | rows with expires_at 3,1,2; `Order: [storage.Asc("expires_at")]` → 1,2,3; with `After` too → `crud.ErrAfterWithOrder` |
+| `TestTenantStore_OrConditionRejected` | `ReadAll` with `storage.Or(storage.Eq("name","x"))` → `crud.ErrOrCondition` |
+| `TestStore_CheckModel` | tenant store + model without tenant_id → `ErrNoTenantField`; global + with → `ErrTenantOnGlobal` |
 
-```
-RULE: never hand-edit a generated *_orm.go — run the generator.
-RULE: every repeated string is a named constant; string literals forbidden in logic.
-RULE: this repo's behaviour must not change; only dead methods disappear.
-```
+## Stage 3 — documentation
 
-## Stage 1 — regenerate with the new `ormc`
+`README.md`: «Persist a table through crud» with `orm.TenantStore(m.db, m.tenantID, m.deps.IDs)`. `docs/ARQUITECTURE.md`: tenant
+scoping and why OR is rejected (conditions are not grouped).
 
-**Files:** `tests/models_orm.go` (15 list types).
+## Delivery check
 
-1. `go get webtyp.com/model@latest` so `FielderSlice` is the narrowed one.
-2. Run `ormc` at the repo root. It rewrites the generated file(s) in place; the
-   header is `DO NOT EDIT. generated by webtyp.com/ormc`.
-3. Confirm the diff contains **only** removals of the two stub methods —
-   15 `Schema()` and 15 `Pointers()` lines — and nothing else. If
-   any other line moved, the installed `ormc` predates phase B: stop and say so
-   in the PR instead of committing the drift.
+`gotest`. A tree that does not compile or whose tests did not run is a failed delivery.
 
-## Acceptance criteria
-
-1. `go build ./...`, `go vet ./...`, `go test ./...` green.
-2. `grep -rn "List) Schema() \[\]model.Field" --include='*.go' .` → empty.
-3. `grep -rn "List) Pointers()" --include='*.go' .` → empty.
-4. `grep -rnc "Append() model.Fielder" --include='*.go' .` → unchanged from
-   before the change: the traversal contract survived.
-5. `go.mod` requires the phase A tag of `webtyp.com/model`; no `replace`.
-6. `grep -rn "TODO\|FIXME\|Deprecated" --include='*.go' .` → only hits that
-   predate this change.
-
-## Out of scope
-
-- Changing `model.FielderSlice` itself — phase A, already shipped.
-- Changing what `ormc` emits — phase B, already shipped.
-- Removing the `EncodeFields`/`DecodeFields` no-ops — measured and rejected.
-- Any behaviour change in this repo. If a test fails, the cause is upstream:
-  report it, do not paper over it here.
-
-| Stage | Files | Action |
-|---|---|---|
-| 1 | `tests/models_orm.go` | regenerate with `ormc`; 15 stub pairs disappear |
+| Stage | Files |
+|---|---|
+| 1 | `store.go`, `go.mod` |
+| 2 | `tests/store_test.go`, `docs/TESTS.md` |
+| 3 | `README.md`, `docs/ARQUITECTURE.md` |

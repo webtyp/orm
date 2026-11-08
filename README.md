@@ -139,6 +139,24 @@ The `ormc` generator produces:
 - `ReadOneT()`, `ReadAllT()`, `TList` type (for DB models).
 - `SchemaExt() []model.FieldExt` (foreign keys; `model.FieldExt` lives in [webtyp/model](https://github.com/webtyp/model)).
 
+## Persist a table through crud
+
+A domain module persists tables by passing a `crud.Store` to `crud.Table`. To guarantee that multi-tenant data cannot leak across tenant boundaries, instantiate a `TenantStore` with the installation's tenant ID and ID generator:
+
+```go
+store := orm.TenantStore(m.db, m.tenantID, m.deps.IDs)
+```
+
+Every read, update, and delete is automatically scoped with `WHERE tenant_id = ?`, and every insert has `tenant_id` stamped with the store's tenant.
+
+For tables shared across all installations without tenant isolation (e.g. global catalogs), use `GlobalStore`:
+
+```go
+store := orm.GlobalStore(m.db, m.deps.IDs)
+```
+
+`Store` implements `crud.Store`, `crud.Transactional` (`Atomic`), and `crud.ModelChecker`.
+
 ## Errors
 
 `ReadOne` returns `orm.ErrNotFound` when no row matches; detect it with `orm.IsNotFound(err)`. It is a "not found" refusal (`model.KindOf(err) == model.ErrorNotFound`), so `rpc.WriteError` answers it 404 without the module translating it.

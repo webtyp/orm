@@ -126,3 +126,19 @@ The conformance testing suite has moved to `webtyp/storage/conformance`. It prov
 ## 6. Mocking and In-Memory Execution (`webtyp/storage/mock` & `webtyp/storage/mem`)
 
 The mock recorders and the in-memory engine have moved to `webtyp/storage/mock` and `webtyp/storage/mem` respectively.
+
+---
+
+## 7. Tenant Scoping and crud.Store
+
+`orm.TenantStore` and `orm.GlobalStore` implement `crud.Store`, persisting tables through `webtyp/crud`.
+
+### 7.1. Tenant Isolation
+A `TenantStore` guarantees tenant boundary enforcement at the repository layer:
+- **Inserts:** Always overwrite/stamp `tenant_id` with `s.tenant` on the record.
+- **Reads, Updates, Deletes:** Prepend `storage.Eq("tenant_id", s.tenant)` to query conditions.
+- **Model Check:** Ensures models used with `TenantStore` contain the `tenant_id` field (`ErrNoTenantField`), while models used with `GlobalStore` do not contain it (`ErrTenantOnGlobal`).
+
+### 7.2. Why OR Conditions Are Rejected
+In `scope(conds)`, any condition with `c.Logic() == "OR"` is rejected with `crud.ErrOrCondition`. Query conditions passed from callers are evaluated in sequence without grouping (parentheses). If an `OR` condition were allowed (e.g. `WHERE tenant_id = 'a' AND name = 'x' OR status = 'active'`), the precedence would evaluate rows across all other tenants whose status is active, causing a cross-tenant data leak. To ensure strict isolation, all search and query conditions must use `AND` logic only.
+
