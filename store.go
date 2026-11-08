@@ -217,7 +217,14 @@ func (s *Store) ReadAll(newRow func() model.Model, q crud.Query, onRow func(mode
 		qb.Limit(int(q.Limit))
 	}
 
-	return qb.ReadAll(newRow, onRow)
+	first := true
+	return qb.ReadAll(func() model.Model {
+		if first {
+			first = false
+			return sample
+		}
+		return newRow()
+	}, onRow)
 }
 
 // Create inserts a new record, stamping the tenant_id when on a TenantStore.
