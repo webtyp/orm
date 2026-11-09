@@ -163,5 +163,5 @@ store := orm.GlobalStore(m.db, m.deps.IDs)
 
 ## More Documentation
 
-- [Architecture](docs/ARQUITECTURE.md)
+- [Architecture](docs/ARCHITECTURE.md)
 - [Improvement Roadmap](docs/IMPROVE.md)
