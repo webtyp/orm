@@ -269,3 +269,29 @@ func (s *Store) Delete(rec model.Model, id string) error {
 	}
 	return s.db.Delete(rec, scoped[0], scoped[1:]...)
 }
+
+var _ crud.ConditionalUpdater = (*Store)(nil)
+
+// UpdateFieldsIf is crud's conditional update: it writes fields of the row id only if the column field still holds expected, and says how many rows it changed.
+//
+//	rows, err := store.UpdateFieldsIf(rec, id, []string{"name", "revision"}, "revision", 3)
+func (s *Store) UpdateFieldsIf(rec model.Model, id string, fields []string, field string, expected int64) (int64, error) {
+	for _, f := range fields {
+		if f == FieldTenant {
+			return 0, crud.ErrServerOnlyField
+		}
+	}
+	conds, err := keyConds(rec, id)
+	if err != nil {
+		return 0, err
+	}
+	scoped, err := s.scope(append(conds, storage.Eq(field, expected)))
+	if err != nil {
+		return 0, err
+	}
+	result, err := s.db.updateFields(rec, fields, scoped[0], scoped[1:]...)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}

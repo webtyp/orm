@@ -2,7 +2,7 @@
 
 | Test | Rule |
 |---|---|
-| [TestStore_Conformance](../tests/store_test.go) | `storetest.Run` passes against `orm.GlobalStore(orm.New(mem.New()), ids)` |
+| [TestStore_Conformance](../tests/store_test.go) | `conformance.Run` passes against `orm.GlobalStore(orm.New(mem.New()), ids)` |
 | [TestTenantStore_ReadsOnlyItsTenant](../tests/store_test.go) | `TenantStore.ReadAll` returns only rows belonging to that tenant |
 | [TestTenantStore_ReadOneOtherTenantIsNotFound](../tests/store_test.go) | `TenantStore.ReadOne` on another tenant's row returns kind `model.ErrorNotFound` |
 | [TestTenantStore_CreateOverwritesTenant](../tests/store_test.go) | `TenantStore.Create` stamps and overwrites `tenant_id` with store's tenant |

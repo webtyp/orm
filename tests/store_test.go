@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"webtyp.com/crud"
-	"webtyp.com/crud/storetest"
+	"webtyp.com/crud/conformance"
 	"webtyp.com/model"
 	"webtyp.com/orm"
 	"webtyp.com/storage"
@@ -70,10 +70,10 @@ func (m *CompositeItem) Allow() model.Action { return model.AllActions }
 
 func TestStore_Conformance(t *testing.T) {
 	ids := mockIDGen{next: "id-1"}
-	storetest.Run(t, func(t *testing.T) crud.Store {
+	conformance.Run(t, func(t *testing.T) crud.Store {
 		m := mem.New()
 		db := orm.New(m)
-		dummy := &storetest.TestModel{ID: "__init__"}
+		dummy := &conformance.TestModel{ID: "__init__"}
 		_ = db.Create(dummy)
 		_ = db.Delete(dummy, storage.Eq("id", "__init__"))
 		return orm.GlobalStore(db, ids)
@@ -293,7 +293,7 @@ func TestStore_CheckModel(t *testing.T) {
 	globalStore := orm.GlobalStore(db, ids)
 
 	tenantModel := &TenantItem{}
-	globalModel := &storetest.TestModel{}
+	globalModel := &conformance.TestModel{}
 
 	if err := tenantStore.CheckModel(globalModel); err != orm.ErrNoTenantField {
 		t.Fatalf("expected ErrNoTenantField, got %v", err)

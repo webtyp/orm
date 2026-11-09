@@ -128,3 +128,6 @@ func (s *Store) UpdateFieldsIf(rec model.Model, id string, fields []string, fiel
 4. `docs/ARCHITECTURE.md`: one paragraph on `UpdateFieldsIf` and the sentence «`orm` imports no driver; each driver proves `orm.GlobalStore` with `crud/conformance` in its own tests».
 
 Commit: `feat: conditional update (Revision), proven by crud/conformance`.
+## Executor notes
+
+Completed without issues.

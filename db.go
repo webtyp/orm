@@ -70,7 +70,8 @@ func (d *DB) Create(m model.Model) error {
 	if err != nil {
 		return err
 	}
-	return d.conn.Exec(plan.Query, plan.Args...)
+	_, err = d.conn.Exec(plan.Query, plan.Args...)
+	return err
 }
 
 func isZeroValue(v any) bool {
@@ -108,11 +109,16 @@ func isZeroValue(v any) bool {
 // fallback, which is what makes an accidental whole-table UPDATE a
 // compile-time error rather than a production incident.
 func (d *DB) UpdateFields(m model.Model, fields []string, cond storage.Condition, rest ...storage.Condition) error {
+	_, err := d.updateFields(m, fields, cond, rest...)
+	return err
+}
+
+func (d *DB) updateFields(m model.Model, fields []string, cond storage.Condition, rest ...storage.Condition) (storage.Result, error) {
 	if err := validateQuery(storage.ActionUpdate, m); err != nil {
-		return err
+		return nil, err
 	}
 	if len(fields) == 0 {
-		return fmt.Err("orm: UpdateFields requires at least one field")
+		return nil, fmt.Err("orm: UpdateFields requires at least one field")
 	}
 
 	schema := m.Schema()
@@ -130,11 +136,11 @@ func (d *DB) UpdateFields(m model.Model, fields []string, cond storage.Condition
 			}
 		}
 		if !known {
-			return fmt.Errf("orm: UpdateFields: unknown field %q", name)
+			return nil, fmt.Errf("orm: UpdateFields: unknown field %q", name)
 		}
 		for _, prev := range fields[:i] {
 			if prev == name {
-				return fmt.Errf("orm: UpdateFields: duplicate field %q", name)
+				return nil, fmt.Errf("orm: UpdateFields: duplicate field %q", name)
 			}
 		}
 	}
@@ -168,7 +174,7 @@ func (d *DB) UpdateFields(m model.Model, fields []string, cond storage.Condition
 	}
 	plan, err := d.conn.Compile(q, m)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	return d.conn.Exec(plan.Query, plan.Args...)
 }
@@ -205,7 +211,8 @@ func (d *DB) Update(m model.Model, cond storage.Condition, rest ...storage.Condi
 	if err != nil {
 		return err
 	}
-	return d.conn.Exec(plan.Query, plan.Args...)
+	_, err = d.conn.Exec(plan.Query, plan.Args...)
+	return err
 }
 
 // Delete deletes a model from the database.
@@ -225,7 +232,8 @@ func (d *DB) Delete(m model.Model, cond storage.Condition, rest ...storage.Condi
 	if err != nil {
 		return err
 	}
-	return d.conn.Exec(plan.Query, plan.Args...)
+	_, err = d.conn.Exec(plan.Query, plan.Args...)
+	return err
 }
 
 // Query creates a new QB instance.
