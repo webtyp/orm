@@ -59,7 +59,7 @@ anymore: the map has to not exist at all, not just be excluded from one build ta
 - **Use `orm`-owned sentinels.** `errors.go` defines `ErrNotFound`, `ErrValidation`, `ErrEmptyTable`, `ErrNoTxSupport`. `qb.go` detects `storage.ErrNoRows` (returned by a backend's `Scanner`) with `storage.IsNoRows` and translates it to `ErrNotFound`; callers detect that with `orm.IsNotFound(err)` — never `==` or `errors.Is`, which pull reflection into the TinyGo binary. **Executor adapters** (`webtyp/postgres`, `webtyp/sqlt`) are responsible for mapping their driver-specific errors (e.g. `sql.ErrNoRows`) to `storage.ErrNoRows` inside their `Scanner` implementation.
 - **Executor contract.** Adapters implement `storage.Executor` (defined in `webtyp/storage`, not this package): (1) map `sql.ErrNoRows` → `storage.ErrNoRows`, returning the sentinel itself, never wrapped (`storage.IsNoRows` is a type assertion); (2) never leak `database/sql` types into `orm` core.
 - **Do not use `tinygo` as a build tag** — it is not a standard Go constraint recognized by the Go toolchain. Use `GOOS=js GOARCH=wasm` to build for wasm, and `gotest -tinygo` to test against the TinyGo compiler specifically.
-- **Struct tags are processed at build-time, not runtime.** `fmt.Field` has no `Tag` field. If you ever feel you need to inspect a tag in WASM code, you are wrong — push the work into `ormc`.
+- **Struct tags are processed at build-time, not runtime.** `fmt.Field` has no `Tag` field. If you ever feel you need to inspect a tag in WASM code, you are wrong — push the work into `definitionc`.
 
 ## Code layout
 
@@ -93,6 +93,6 @@ gotest -run TestX   # filter
 ## Common mistakes to avoid
 
 - Trying to parse struct tags from `fmt.Field` at runtime → impossible, the field has no `Tag`.
-- Writing into `model_orm.go` by hand → always run `ormc`.
+- Writing into `definition_gen.go` by hand → always run `definitionc`.
 - Reaching for `map[K]V` for a lookup table or registry → use `fmt.KeyValue` (string/string) or a small
   local slice-of-structs scanned linearly instead. No exceptions, no `//go:build !wasm` escape hatch.
