@@ -17,7 +17,7 @@ REVIEWER: none
 go install webtyp.com/devflow/cmd/gotest@latest
 go get webtyp.com/crud@latest webtyp.com/model@latest   # model must contain model.SplitKey (A6.1)
 ```
-`crud@latest` must contain `crud.Store`, `crud.Tx`, `crud.Query`, `crud.ModelChecker`, `crud/storetest` (plan A6.2); if
+`crud@latest` must contain `crud.Store`, `crud.Tx`, `crud.Query`, `crud.ModelChecker`, `crud/conformance` (plan A6.2); if
 `go doc webtyp.com/crud Store` fails, stop. `orm` imports `crud` (the contract); `crud` never imports `orm`.
 
 ## Why
@@ -36,7 +36,7 @@ that table carries `tenant_id` — stamped on insert, filtered on read, update a
 | `crud.Query` | `struct{ Conditions []storage.Condition; Order []storage.Order; After string; Limit int64 }` |
 | `crud.ModelChecker` | `CheckModel(m model.Model) error` |
 | `crud.ErrOrCondition` | `model.Invalid` |
-| `storetest.Run` | `func Run(t *testing.T, newStore func(t *testing.T) crud.Store)` (`webtyp.com/crud/storetest`) |
+| `conformance.Run` | `func Run(t *testing.T, newStore func(t *testing.T) crud.Store)` (`webtyp.com/crud/conformance`) |
 
 ## Stage 1 — `store.go` (new)
 
@@ -98,7 +98,7 @@ Methods (all on `*Store`; `pk(m)` = name of the field with `IsPK()`; `tenantIdx(
 
 | Test | Setup → expected |
 |---|---|
-| `TestStore_Conformance` | `storetest.Run(t, func(t *testing.T) crud.Store { return orm.GlobalStore(orm.New(mem.New()), ids) })` passes (migrate the storetest model first if `mem` needs it) |
+| `TestStore_Conformance` | `conformance.Run(t, func(t *testing.T) crud.Store { return orm.GlobalStore(orm.New(mem.New()), ids) })` passes (migrate the conformance model first if `mem` needs it) |
 | `TestTenantStore_ReadsOnlyItsTenant` | rows of tenants a and b; `TenantStore(db,"a",ids).ReadAll` → only a's |
 | `TestTenantStore_ReadOneOtherTenantIsNotFound` | row of b; store a `ReadOne(id)` → kind `model.ErrorNotFound` |
 | `TestTenantStore_CreateOverwritesTenant` | create with `tenant_id:"b"` through store a → stored `tenant_id == "a"` |

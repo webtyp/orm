@@ -123,6 +123,10 @@ The conformance testing suite has moved to `webtyp/storage/conformance`. It prov
 
 ---
 
+### 5.1. Conditional update and the proof of concurrency
+
+`Store.UpdateFieldsIf` writes the given fields of one row only while a column (the `Revision`) still holds the expected value and reports how many rows it changed (`crud.ConditionalUpdater`). `orm` imports no driver: its own test runs `crud/conformance` over `storage/mem`, and each driver (`sqlite`, `postgres`, …) runs the same suite over `orm.GlobalStore` in its own tests.
+
 ## 6. Mocking and In-Memory Execution (`webtyp/storage/mock` & `webtyp/storage/mem`)
 
 The mock recorders and the in-memory engine have moved to `webtyp/storage/mock` and `webtyp/storage/mem` respectively.

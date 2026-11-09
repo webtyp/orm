@@ -2,8 +2,10 @@
 PLAN: "refactor!: orm follows storage v0.2.0 (Exec reports rows and duplicates), imports crud/conformance, and its Store updates conditionally (Revision) — proven by crud/conformance"
 EXECUTOR: jules
 REVIEWER: none
-STATUS: running
+STATUS: review
 SESSION: 9250111747019076818
+PR: https://github.com/webtyp/orm/pull/59
+REVIEWED_COMMIT: 4db2f1c5d45a12668e405ba91dacdf890461a52f
 ---
 
 > Read AGENTS.md at the repo root before any change.
@@ -128,3 +130,6 @@ func (s *Store) UpdateFieldsIf(rec model.Model, id string, fields []string, fiel
 4. `docs/ARCHITECTURE.md`: one paragraph on `UpdateFieldsIf` and the sentence «`orm` imports no driver; each driver proves `orm.GlobalStore` with `crud/conformance` in its own tests».
 
 Commit: `feat: conditional update (Revision), proven by crud/conformance`.
+## Executor notes
+
+Completed without issues.
