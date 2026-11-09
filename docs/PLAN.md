@@ -2,6 +2,8 @@
 PLAN: "refactor!: orm follows storage v0.2.0 (Exec reports rows and duplicates), imports crud/conformance, and its Store updates conditionally (Revision) — proven by crud/conformance"
 EXECUTOR: jules
 REVIEWER: none
+STATUS: running
+SESSION: 9250111747019076818
 ---
 
 > Read AGENTS.md at the repo root before any change.
