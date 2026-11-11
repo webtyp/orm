@@ -2,8 +2,10 @@
 PLAN: "feat: orm QB.ILike and storage.ILike re-export"
 EXECUTOR: jules
 REVIEWER: none
-STATUS: running
+STATUS: review
 SESSION: 5304311211291987633
+PR: https://github.com/webtyp/orm/pull/60
+REVIEWED_COMMIT: 7f5a74f984519783cf045fd5feea7020ddee42f2
 ---
 
 > Read AGENTS.md at the repo root before any change.
