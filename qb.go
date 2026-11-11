@@ -51,6 +51,11 @@ func (c *Clause) Gte(value any) *QB   { return c.qb.addCondition(storage.Gte(c.f
 func (c *Clause) Lt(value any) *QB    { return c.qb.addCondition(storage.Lt(c.field, value)) }
 func (c *Clause) Lte(value any) *QB   { return c.qb.addCondition(storage.Lte(c.field, value)) }
 func (c *Clause) Like(value any) *QB  { return c.qb.addCondition(storage.Like(c.field, value)) }
+
+// ILike matches a pattern ignoring upper and lower case.
+//
+//	orm.Query(db).Where("name").ILike("%an%")
+func (c *Clause) ILike(value any) *QB { return c.qb.addCondition(storage.ILike(c.field, value)) }
 func (c *Clause) In(value any) *QB    { return c.qb.addCondition(storage.In(c.field, value)) }
 
 // Limit sets the limit for the query.

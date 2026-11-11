@@ -2,8 +2,10 @@
 PLAN: "feat: orm QB.ILike and storage.ILike re-export"
 EXECUTOR: jules
 REVIEWER: none
-STATUS: running
+STATUS: review
 SESSION: 5304311211291987633
+PR: https://github.com/webtyp/orm/pull/60
+REVIEWED_COMMIT: 7f5a74f984519783cf045fd5feea7020ddee42f2
 ---
 
 > Read AGENTS.md at the repo root before any change.
@@ -44,3 +46,9 @@ func (c *Clause) ILike(value any) *QB { return c.qb.addCondition(storage.ILike(c
 |---|---|
 | 1 | `reexport.go`, `qb.go` |
 | 2 | `tests/qb_ilike_test.go`, `docs/TESTS.md` |
+
+## Executor notes
+- Added `ILike` to `reexport.go` and `qb.go`.
+- Added `TestQB_ILikeIgnoresCase` in `tests/qb_ilike_test.go`.
+- Updated `docs/TESTS.md`.
+- Pull Request opening has to be done by the orchestrator since autonomous subagents lack direct access to open PRs.

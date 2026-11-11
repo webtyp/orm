@@ -28,3 +28,4 @@
 | [TestUpdateFieldsRejectsADuplicateField](../tests/update_fields_test.go) | UpdateFields rejects a duplicate field |
 | [TestUpdateFieldsAppliesToEveryMatchedRow](../tests/update_fields_test.go) | UpdateFields applies to every matched row |
 | [TestDeleteRemovesEveryMatchedRow](../tests/update_fields_test.go) | Delete removes every matched row |
+| [TestQB_ILikeIgnoresCase](../tests/qb_ilike_test.go) | ILike matches a pattern ignoring upper and lower case |

@@ -17,6 +17,7 @@ var (
 	Lt        = storage.Lt
 	Lte       = storage.Lte
 	Like      = storage.Like
+	ILike     = storage.ILike
 	In        = storage.In
 	Or        = storage.Or
 	IsNotNull = storage.IsNotNull
