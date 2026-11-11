@@ -2,6 +2,8 @@
 PLAN: "feat: orm QB.ILike and storage.ILike re-export"
 EXECUTOR: jules
 REVIEWER: none
+STATUS: running
+SESSION: 5304311211291987633
 ---
 
 > Read AGENTS.md at the repo root before any change.
