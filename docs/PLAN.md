@@ -44,3 +44,9 @@ func (c *Clause) ILike(value any) *QB { return c.qb.addCondition(storage.ILike(c
 |---|---|
 | 1 | `reexport.go`, `qb.go` |
 | 2 | `tests/qb_ilike_test.go`, `docs/TESTS.md` |
+
+## Executor notes
+- Added `ILike` to `reexport.go` and `qb.go`.
+- Added `TestQB_ILikeIgnoresCase` in `tests/qb_ilike_test.go`.
+- Updated `docs/TESTS.md`.
+- Pull Request opening has to be done by the orchestrator since autonomous subagents lack direct access to open PRs.
